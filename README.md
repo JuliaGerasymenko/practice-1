@@ -1,6 +1,3 @@
 # practice-1
 
-package implementation
-
-##example
-
+package implementation of postfix to infix notation 

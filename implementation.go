@@ -1,67 +1,84 @@
 package lab1
 
 import (
-	"fmt"
-	"log"
-
-	//"log"
-
+	"errors"
+	"regexp"
 	s "strings"
-	"strconv"
 )
 
-func isOperand(el string) bool {
-	return s.Contains("+-*/^" ,el)
+func alphanumeric(matchStr string) bool {
+	re := regexp.MustCompile("^[a-zA-Z0-9-]*$")
+	return re.MatchString(matchStr)
 }
 
-func isNumber(el string) bool {
-	_, err := strconv.Atoi(el)
-	if err == nil {
-		return true
+func toString(slice []string) string {
+	return s.Join(slice, "")
+}
+
+func hasOperator(str string) bool {
+	return s.ContainsAny("+-*/^", str)
+}
+func isOperator(str string) bool {
+	return s.Contains("+-*/^", str)
+}
+
+//lastElem, popStack
+func popBack(stack []string) ([]string, []string) {
+	lastIndex := len(stack) - 1
+	return stack[lastIndex:], stack[:lastIndex]
+}
+
+func getLastEl(stack []string) []string {
+	lastElem, _ := popBack(stack)
+	return lastElem
+}
+
+func priority(char string) int {
+	if s.Contains(char, "+") || s.Contains(char, "-") {
+		return 1
 	} else {
-		return false
+		return 2
 	}
 }
 
-func PostfixToPrefix(input string) []string {
-	//str1 := "4 2 - 3 * 5 +"
-	stack := make([]string, 2)
-	var j, i = 0, 0
-	for i < len(input) {
-		strEl := string(input[i])
-		if strEl == " " {
-			j++
-		} else if isOperand(strEl) {
-			if i+1 < len(input) && isNumber(string(input[i+1])) {
-				fmt.Println(input[i+1])
-				stack[j] = "(" + strEl
-			} else {
-				fmt.Println("(" + s.Join(stack, strEl) + ")")
-				stack[0] = "(" + s.Join(stack, strEl) + ")"
-				if s.HasPrefix(stack[1], "-") {
-					stack[0] += ")"
-				}
-				stack[1] = ""
-				j = 0
-			}
-			//if i+1 < len(input) && reflect.TypeOf(input[i])
-		} else if isNumber(strEl) {
-			if len(stack[j]) == 0 {
-				stack[j] = strEl
-				//fmt.Println(stack[j], strEl)
-			} else {
-				stack[j] += strEl
-			}
-		} else {
-			log.Fatal("entered incorrect data = ", strEl)
-		}
-		i++
+func PostfixToInfix(input string) (string, error) {
+	var stack []string
+	expression := s.TrimSpace(input)
+	charArr := s.Split(expression, " ")
+	if len(charArr) == 1 {
+		err := errors.New("add extra spaces between operands")
+		return toString(stack), err
 	}
-	fmt.Println(stack[0])
-	return stack[:1]
+	for _, str := range charArr {
+		if isOperator(str) {
+			if len(stack) < 2 {
+				err := errors.New("can't use an operator for less than two operands")
+				return toString(stack), err
+			}
+			var leftArg, rightArg []string
+			rightArg, stack = popBack(stack)
+			leftArg, stack = popBack(stack)
+			if priority(str) == 1 {
+				stack = append(stack, "("+toString(leftArg)+str+toString(rightArg)+")")
+			} else {
+				stack = append(stack, toString(leftArg)+str+toString(rightArg))
+			}
+		} else if alphanumeric(str) {
+			if hasOperator(str) {
+				if s.HasPrefix(str, "-") {
+					stack = append(stack, "("+str+")")
+				} else {
+					err := errors.New("add extra spaces between operands")
+					return toString(stack), err
+				}
+			} else {
+				stack = append(stack, str)
+			}
+
+		} else {
+			err := errors.New("entered incorrect data")
+			return toString(stack), err
+		}
+	}
+	return toString(getLastEl(stack)), nil
 }
-//func main() {
-//	PostfixToPrefix("4 2 - 3 * 5 +")
-//}
-//	//str1 := "4 2 - 3 * 5 +"
-	//str1 := "4 2 -"
